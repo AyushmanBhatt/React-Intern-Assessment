@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 import { DataGrid, GridColDef } from '@mui/x-data-grid';
-import { List, ListItem, ListItemText, Checkbox } from '@mui/material';
+import { List, ListItem, ListItemText, Checkbox, Collapse, IconButton } from '@mui/material';
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import ExpandLessIcon from '@mui/icons-material/ExpandLess';
 
 interface Post {
   userId: number;
@@ -18,6 +20,7 @@ const SecondPage = () => {
   const [posts, setPosts] = useState<Post[]>([]);
   const [departments, setDepartments] = useState<Department[]>([]);
   const [selected, setSelected] = useState<string[]>([]);
+  const [expandedDepartments, setExpandedDepartments] = useState<string[]>([]);
 
   useEffect(() => {
     // Fetch data from the API
@@ -46,7 +49,13 @@ const SecondPage = () => {
     { field: 'body', headerName: 'Body', width: 500 },
   ];
 
-  const handleToggle = (item: string) => {
+  const handleToggleDepartment = (department: string) => {
+    setExpandedDepartments((prev) =>
+      prev.includes(department) ? prev.filter((dep) => dep !== department) : [...prev, department]
+    );
+  };
+
+  const handleToggleCheckbox = (item: string) => {
     setSelected((prev) => {
       const index = prev.indexOf(item);
       if (index === -1) {
@@ -57,7 +66,7 @@ const SecondPage = () => {
         return prev.filter((selectedItem) => selectedItem !== item);
       }
     });
-  
+
     // Check if the item is a department
     const department = departments.find((dept) => dept.department === item);
     if (department) {
@@ -65,7 +74,7 @@ const SecondPage = () => {
       const allSubDepartmentsSelected = department.sub_departments.every((subDept) =>
         selected.includes(subDept)
       );
-  
+
       setSelected((prev) => {
         if (allSubDepartmentsSelected) {
           // If all sub-departments are selected, unselect all of them
@@ -75,7 +84,7 @@ const SecondPage = () => {
           return [...prev, ...department.sub_departments];
         }
       });
-  
+
       // If all sub-departments are selected, unselect the parent department as well
       setSelected((prev) =>
         allSubDepartmentsSelected
@@ -114,25 +123,38 @@ const SecondPage = () => {
         {departments.map((dept) => (
           <div key={dept.department}>
             <ListItem button>
+              <IconButton
+                onClick={() => handleToggleDepartment(dept.department)}
+              >
+                {expandedDepartments.includes(dept.department) ? (
+                  <ExpandLessIcon />
+                ) : (
+                  <ExpandMoreIcon />
+                )}
+              </IconButton>
               <Checkbox
                 checked={selected.includes(dept.department)}
                 indeterminate={
                   selected.some((subDept) => dept.sub_departments.includes(subDept)) &&
                   !selected.includes(dept.department)
                 }
-                onChange={() => handleToggle(dept.department)}
+                onChange={() => handleToggleCheckbox(dept.department)}
               />
               <ListItemText primary={`${selected.includes(dept.department) ? '-' : ''} ${dept.department}`} />
             </ListItem>
-            {dept.sub_departments.map((subDept) => (
-              <ListItem key={subDept} button style={{ paddingLeft: '30px' }}>
-                <Checkbox
-                  checked={selected.includes(subDept)}
-                  onChange={() => handleToggle(subDept)}
-                />
-                <ListItemText primary={`${selected.includes(subDept) ? '-' : ''} ${subDept}`} />
-              </ListItem>
-            ))}
+            <Collapse in={expandedDepartments.includes(dept.department)} timeout="auto" unmountOnExit>
+              <List component="div" disablePadding>
+                {dept.sub_departments.map((subDept) => (
+                  <ListItem key={subDept} button style={{ paddingLeft: '30px' }}>
+                    <Checkbox
+                      checked={selected.includes(subDept)}
+                      onChange={() => handleToggleCheckbox(subDept)}
+                    />
+                    <ListItemText primary={`${selected.includes(subDept) ? '-' : ''} ${subDept}`} />
+                  </ListItem>
+                ))}
+              </List>
+            </Collapse>
           </div>
         ))}
       </List>
